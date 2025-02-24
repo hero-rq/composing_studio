@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Piano Playing Game - Peaceful Composition</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    .piano {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .row {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .key {
+      width: 40px;
+      height: 150px;
+      margin: 2px;
+      background: #fff;
+      border: 1px solid #000;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      font-size: 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s ease;
+    }
+    .key.active {
+      background: #e0e0e0;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Piano Playing Game</h1>
+  <p>Press the keys on your keyboard to play notes or click the button below for a peaceful composition!</p>
+  <div class="piano">
+    <div class="row" id="row1"></div>
+    <div class="row" id="row2"></div>
+    <div class="row" id="row3"></div>
+  </div>
+  <button id="playCompositionButton">Play Peaceful Composition</button>
+
+  <script>
+  const mappingRow1 = {
+      'q': 261.63, 
+      'w': 293.66, 
+      'e': 329.63,
+      'r': 349.23, 
+      't': 392.00, 
+      'y': 440.00, 
+      'u': 493.88, 
+      'i': 523.25, 
+      'o': 587.33, 
+      'p': 659.25  
+    };
+
+    const mappingRow2 = {
+      'a': 698.46, 
+      's': 783.99, 
+      'd': 880.00, 
+      'f': 987.77, 
+      'g': 1046.50, 
+      'h': 1174.66, 
+      'j': 1318.51, 
+      'k': 1396.91, 
+      'l': 1567.98, 
+      ';': 1760.00  
+    };
+
+    const mappingRow3 = {
+      'z': 987.77,   
+      'x': 1046.50,  
+      'c': 1174.66,  
+      'v': 1318.51,  
+      'b': 1396.91,  
+      'n': 1567.98,  
+      'm': 1760.00,  
+      ',': 1975.53,  
+      '.': 2093.00,  
+      '/': 2349.32   
+    };
+
+    const keyMapping = {};
+    for (const [key, freq] of Object.entries(mappingRow1)) {
+      keyMapping[key] = { freq: freq, row: 'row1' };
+    }
+    for (const [key, freq] of Object.entries(mappingRow2)) {
+      keyMapping[key] = { freq: freq, row: 'row2' };
+    }
+    for (const [key, freq] of Object.entries(mappingRow3)) {
+      keyMapping[key] = { freq: freq, row: 'row3' };
+    }
+
+    function createKeys(mapping, rowId) {
+      const row = document.getElementById(rowId);
+      for (const key of Object.keys(mapping)) {
+        const keyDiv = document.createElement('div');
+        keyDiv.className = 'key';
+        keyDiv.id = 'key-' + key;
+        keyDiv.innerText = key.toUpperCase();
+        row.appendChild(keyDiv);
+      }
+    }
+    createKeys(mappingRow1, 'row1');
+    createKeys(mappingRow2, 'row2');
+    createKeys(mappingRow3, 'row3');
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    function playTone(freq) {
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.type = 'sine';
+      oscillator.frequency.value = freq;
+      gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
+      oscillator.start();
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.9);
+      oscillator.stop(audioCtx.currentTime + 1);
+    }
+
+    window.addEventListener('keydown', (event) => {
+      const key = event.key.toLowerCase();
+      if (keyMapping[key]) {
+        playTone(keyMapping[key].freq);
+        const keyDiv = document.getElementById('key-' + key);
+        if (keyDiv) keyDiv.classList.add('active');
+      }
+    });
+
+    window.addEventListener('keyup', (event) => {
+      const key = event.key.toLowerCase();
+      const keyDiv = document.getElementById('key-' + key);
+      if (keyDiv) keyDiv.classList.remove('active');
+    });
+
+    function playScheduledTone(freq, startTime, duration) {
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.type = 'sine';
+      oscillator.frequency.value = freq;
+      gainNode.gain.setValueAtTime(0.001, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.5, startTime + 0.01);
+      gainNode.gain.setValueAtTime(0.5, startTime + duration - 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    }
+
+    const composition = [
+      { freq: 261.63, duration: 1 }, 
+      { freq: 293.66, duration: 1 }, 
+      { freq: 329.63, duration: 1 }, 
+      { freq: 392.00, duration: 1 }, 
+      { freq: 440.00, duration: 1.5 }, 
+      { freq: 493.88, duration: 1.5 }, 
+      { freq: 523.25, duration: 1 }, 
+      { freq: 493.88, duration: 1 }, 
+      { freq: 440.00, duration: 1 }, 
+      { freq: 392.00, duration: 1.5 }, 
+      { freq: 349.23, duration: 1.5 }, 
+      { freq: 293.66, duration: 1 }, 
+      { freq: 261.63, duration: 2 }
+    ];
+
+    function playComposition() {
+      let startTime = audioCtx.currentTime + 0.5;
+      composition.forEach(note => {
+        playScheduledTone(note.freq, startTime, note.duration);
+        startTime += note.duration;
+      });
+    }
+
+    document.getElementById("playCompositionButton").addEventListener("click", playComposition);
+  </script>
+</body>
+</html>
